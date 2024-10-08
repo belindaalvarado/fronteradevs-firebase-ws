@@ -1,218 +1,63 @@
-import { db } from "./firebase.config"
-import { useState, useEffect } from "react"
-import {
-  collection,
-  onSnapshot,
-  doc,
-  addDoc,
-  deleteDoc
-} from "firebase/firestore"
-import SignIn from "./components/auth/SignIn"
-import SignUp from "./components/auth/SignUp"
-import AuthDetails from "./components/auth/AuthDetails"
+import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import SignIn from "./components/auth/SignIn";
+import SignUp from "./components/auth/SignUp";
+import Home from "./Home";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import React, { useState, useEffect } from "react";
+import { auth } from "./firebase.config";
 
 function App() {
-  const [recipes, setRecipes] = useState([])
-  const [form, setForm] = useState({
-    title: "",
-    desc: "",
-    ingredients: [],
-    steps: []
-  })
-  const [popupActive, setPopupActive] = useState(false)
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const recipesCollectionRef = collection(db, "recipes")
-
+  // Check auth state on initial load and track changes
   useEffect(() => {
-    onSnapshot(recipesCollectionRef, snapshot => {
-      setRecipes(snapshot.docs.map(doc => {
-        return {
-          id: doc.id,
-          viewing: false,
-          ...doc.data()
-        }
-      }))
-    })
-  }, [])
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser); // Set the user if authenticated, or null if not
+      setLoading(false); // Once we check the auth state, stop loading
+    });
 
-  const handleView = id => {
-    const recipesClone = [...recipes]
+    // Clean up the listener when component unmounts
+    return () => unsubscribe();
+  }, []); // Empty dependency array ensures this runs only once
 
-    recipesClone.forEach(recipe => {
-      if (recipe.id === id) {
-        recipe.viewing = !recipe.viewing
-      } else {
-        recipe.viewing = false
-      }
-    })
-
-    setRecipes(recipesClone)
+  if (loading) {
+    // While checking auth status, you can show a loading spinner or a blank screen
+    return <div>Loading...</div>;
   }
 
-  const handleSubmit = e => {
-    e.preventDefault()
-
-    if (
-      !form.title ||
-      !form.desc ||
-      !form.ingredients ||
-      !form.steps
-    ) {
-      alert("Please fill out all fields")
-      return
-    }
-
-    addDoc(recipesCollectionRef, form)
-
-    setForm({
-      title: "",
-      desc: "",
-      ingredients: [],
-      steps: []
-    })
-
-    setPopupActive(false)
-  }
-
-  const handleIngredient = (e, i) => {
-    const ingredientsClone = [...form.ingredients]
-
-    ingredientsClone[i] = e.target.value
-
-    setForm({
-      ...form,
-      ingredients: ingredientsClone
-    })
-  }
-
-  const handleStep = (e, i) => {
-    const stepsClone = [...form.steps]
-
-    stepsClone[i] = e.target.value
-
-    setForm({
-      ...form,
-      steps: stepsClone
-    })
-  }
-
-  const handleIngredientCount = () => {
-    setForm({
-      ...form,
-      ingredients: [...form.ingredients, ""]
-    })
-  }
-
-  const handleStepCount = () => {
-    setForm({
-      ...form,
-      steps: [...form.steps, ""]
-    })
-  }
-
-  const removeRecipe = id => {
-    deleteDoc(doc(db, "recipes", id))
-  }
+  // Function to handle sign out
+  const handleSignOut = () => {
+    signOut(auth).then(() => {
+      console.log("User signed out");
+    });
+  };
 
   return (
-    <div className="App">
-      <SignIn/>
-      <SignUp/>
-      <AuthDetails/>
-      <h1>My recipes</h1>
+    <div className="App"> 
+      <Router>
+        <nav>
+          {!user ? (
+            <>
+              <Link to="/signin" className="mr-5 hover:text-sky-300">Sign In</Link>
+              <Link to="/signup" className="hover:text-sky-300">Sign Up</Link>
+            </>
+          ) : (
+            <>
+              <button 
+              className="py-2 px-4 rounded-md hover:bg-blue-400 hover:text-white" 
+              onClick={handleSignOut}>Sign Out</button>
+            </>
+          )}
+        </nav>
 
-      <button onClick={() => setPopupActive(!popupActive)}>Add recipe</button>
-
-      <div className="recipes">
-        { recipes.map((recipe, i) => (
-          <div className="recipe" key={recipe.id}>
-            <h3>{ recipe.title }</h3>
-
-            <p dangerouslySetInnerHTML={{ __html: recipe.desc }}></p>
-
-            { recipe.viewing && <div>
-              <h4>Ingredients</h4>
-              <ul>
-                { recipe.ingredients.map((ingredient, i) => (
-                  <li key={i}>{ ingredient }</li>
-                ))}
-              </ul>
-
-              <h4>Steps</h4>
-              <ol>
-                { recipe.steps.map((step, i) => (
-                  <li key={i}>{ step }</li>
-                ))}
-              </ol>
-            </div>}
-
-            <div className="buttons">
-              <button onClick={() => handleView(recipe.id)}>View { recipe.viewing ? 'less' : 'more' }</button>
-              <button className="remove" onClick={() => removeRecipe(recipe.id)}>Remove</button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      { popupActive && <div className="popup">
-        <div className="popup-inner">
-          <h2>Add a new recipe</h2>
-
-          <form onSubmit={handleSubmit}>
-
-            <div className="form-group">
-              <label>Title</label>
-              <input 
-                type="text" 
-                value={form.title} 
-                onChange={e => setForm({...form, title: e.target.value})} />
-            </div>
-
-            <div className="form-group">
-              <label>Description</label>
-              <textarea 
-                type="text" 
-                value={form.desc} 
-                onChange={e => setForm({...form, desc: e.target.value})} />
-            </div>
-
-            <div className="form-group">
-              <label>Ingredients</label>
-              {
-                form.ingredients.map((ingredient, i) => (
-                  <input 
-                    type="text"
-                    key={i}
-                    value={ingredient} 
-                    onChange={e => handleIngredient(e, i)} />
-                ))
-              }
-              <button type="button" onClick={handleIngredientCount}>Add ingredient</button>
-            </div>
-
-            <div className="form-group">
-              <label>Steps</label>
-              {
-                form.steps.map((step, i) => (
-                  <textarea 
-                    type="text"
-                    key={i}
-                    value={step} 
-                    onChange={e => handleStep(e, i)} />
-                ))
-              }
-              <button type="button" onClick={handleStepCount}>Add step</button>
-            </div>
-
-            <div className="buttons">
-              <button type="submit">Submit</button>
-              <button type="button" class="remove" onClick={() => setPopupActive(false)}>Close</button>
-            </div>
-
-          </form>
-        </div>
-      </div>}
-    </div>
+        <Routes>
+          <Route path="/" element={user ? <Home /> : <SignIn />} />
+          <Route path="/signin" element={<SignIn />} />
+          <Route path="/signup" element={<SignUp />} />
+        </Routes>
+      </Router>
+    </div>   
   );
 }
 
