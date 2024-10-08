@@ -7,6 +7,9 @@ import {
   addDoc,
   deleteDoc
 } from "firebase/firestore"
+import SignIn from "./components/auth/SignIn"
+import SignUp from "./components/auth/SignUp"
+import AuthDetails from "./components/auth/AuthDetails"
 
 function App() {
   const [recipes, setRecipes] = useState([])
@@ -113,6 +116,9 @@ function App() {
 
   return (
     <div className="App">
+      <SignIn/>
+      <SignUp/>
+      <AuthDetails/>
       <h1>My recipes</h1>
 
       <button onClick={() => setPopupActive(!popupActive)}>Add recipe</button>

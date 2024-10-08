@@ -1,17 +1,19 @@
 import { initializeApp } from "firebase/app"
 import { getFirestore } from "firebase/firestore"
+import { getAuth } from "firebase/auth"
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBJuvz5TFoHPUwRYPL730Z8RaC3jNUzU1Q",
-  authDomain: "react-recipe-yt.firebaseapp.com",
-  projectId: "react-recipe-yt",
-  storageBucket: "react-recipe-yt.appspot.com",
-  messagingSenderId: "477940487473",
-  appId: "1:477940487473:web:8184943d38ec332ed78c10"
+  apiKey: "AIzaSyD4ZN0sCBQDXNlgbpbTQnDkLLrUBZfdAvI",
+  authDomain: "fronteradevs-firebase-ws.firebaseapp.com",
+  projectId: "fronteradevs-firebase-ws",
+  storageBucket: "fronteradevs-firebase-ws.appspot.com",
+  messagingSenderId: "561293959611",
+  appId: "1:561293959611:web:193fa2ae6d828326f9e49e",
+  measurementId: "G-VR39C6EQNX"
 }
 
 const app = initializeApp(firebaseConfig)
-
+const auth = getAuth(app);
 const db = getFirestore(app)
 
-export { db }
+export { db, auth }
